@@ -1,13 +1,11 @@
 #ifndef __configure_h__
 #define __configure_h__
 
-class Configure {
-public:
-    char * getSSID();
-    char * getPassword();
-    char * getHostName();
-    int getMachineId();
-private:
-};
+#include <IPAddress.h>
+
+const char* SSID     = "WARNER";
+const char* PASSWORD = "jaggedoboe136";
+
+const char* HOST_ADDRESS = "192.168.1.111";
 
 #endif

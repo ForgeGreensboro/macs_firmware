@@ -1,0 +1,11 @@
+#ifndef __configure_h__
+#define __configure_h__
+
+#include <IPAddress.h>
+
+const char* SSID     = "";
+const char* PASSWORD = "";
+
+const char* HOST_ADDRESS = "";
+
+#endif

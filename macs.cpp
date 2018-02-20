@@ -32,6 +32,13 @@ Macs::Macs()
    pinMode(RELAY_PIN, OUTPUT);
 }
 
+Macs::Macs(const char * &ssid, const char * &password, const char *  &hostname) : Macs()
+{
+  _ssid = (char *)ssid;
+  _password = (char *)password;
+  _hostname = (char *) hostname;
+}
+
 Macs::~Macs()
 {
     _rfid = nullptr;
@@ -138,8 +145,7 @@ bool Macs::validateCard(unsigned long card)
     http_request_t aRequest;
     http_response_t aResponse;
 
-    aRequest.ip = IPAddress(192,168,1,111);
-    aRequest.hostname = "192.168.1.111";
+    aRequest.hostname = _hostname;
     aRequest.path = _url;
     aRequest.port = 80;
 

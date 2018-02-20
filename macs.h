@@ -1,6 +1,8 @@
 #ifndef __macs_h__
 #define __macs_h__
 
+#include <IPAddress.h>
+
 class Command;
 class SeeedRFID;
 class RestClient;
@@ -9,6 +11,7 @@ class String;
 class Macs {
 public:
     Macs();
+    Macs(const char * &, const char * &, const char * &);
     ~Macs();
 
     SeeedRFID * getRfId();
@@ -37,6 +40,7 @@ private:
     char * _ssid;
     char * _password;
     char * _hostname;
+    IPAddress _remoteAddress;
 
     unsigned long _currentTag = 0;
 
