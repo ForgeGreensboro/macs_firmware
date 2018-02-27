@@ -4,6 +4,8 @@
 #include <ESP8266WiFi.h>
 #include <EEPROM.h>
 
+#include <sstream>
+
 #include "command.h"
 #include "macs.h"
 #include "rest_client.h"
@@ -102,6 +104,7 @@ void Macs::run()
          Serial.println("Turning off Relay, and Locking machine.");
          _relayState = false;
          _currentTag = 0;
+         logLock();
 
     }
     if(cardIsAvailable)
@@ -115,6 +118,12 @@ void Macs::run()
 
         _relayState = validateCard(_currentTag);
 
+        if(_relayState)
+        {
+          logValid(_currentTag);
+        }else {
+         logInvalid(_currentTag);
+        }
     }
 
     if (Serial.available() > 0) {
@@ -155,4 +164,80 @@ bool Macs::validateCard(unsigned long card)
     Serial.println(aResponse.status);
 
     return aResponse.status == 200;
+}
+
+void Macs::logValid(unsigned long card)
+{
+  const String url = "/api/logs/";
+
+  http_request_t aRequest;
+  http_response_t aResponse;
+
+  aRequest.hostname =_hostname;
+  aRequest.path = url;
+  aRequest.port = 80;
+
+  aRequest.body = "machine=";
+  aRequest.body += _machine_id;
+  aRequest.body += "&member=";
+  aRequest.body += card;
+  aRequest.body += "&event=1";
+
+
+  Serial.println("\n");
+
+  _restClient->post(aRequest, aResponse);
+
+  Serial.println(url);
+  Serial.println(aResponse.status);
+}
+
+void Macs::logInvalid(unsigned long card)
+{
+  const String url = "/api/logs/";
+
+  http_request_t aRequest;
+  http_response_t aResponse;
+
+  aRequest.hostname =_hostname;
+  aRequest.path = url;
+  aRequest.port = 80;
+
+  aRequest.body = "machine=";
+  aRequest.body += _machine_id;
+  aRequest.body += "&member=";
+  aRequest.body += card;
+  aRequest.body += "&event=3";
+
+
+  Serial.println("\n");
+
+  _restClient->post(aRequest, aResponse);
+
+  Serial.println(url);
+  Serial.println(aResponse.status);
+}
+
+void Macs::logLock()
+{
+  const String url = "/api/logs/";
+
+  http_request_t aRequest;
+  http_response_t aResponse;
+
+  aRequest.hostname =_hostname;
+  aRequest.path = url;
+  aRequest.port = 80;
+
+  aRequest.body = "machine=";
+  aRequest.body += _machine_id;
+  aRequest.body += "&event=2";
+
+
+  Serial.println("\n");
+
+  _restClient->post(aRequest, aResponse);
+
+  Serial.println(url);
+  Serial.println(aResponse.status);
 }

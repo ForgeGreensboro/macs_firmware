@@ -55,6 +55,11 @@ private:
 
     char * eepromRead(int, int);
     bool validateCard(unsigned long card);
+
+    void logValid(unsigned long card);
+    void logInvalid(unsigned long card);
+    void logLock();
+
     char _url[64];
     const char * _pattern = "/api/members/%d/machines/%d/";
 };

@@ -88,6 +88,11 @@ void RestClient::request(http_request_t &aRequest, http_response_t &aResponse,
 
     sendHeader("User-Agent", "ES8266");
 
+    if(strcmp(aHttpMethod, HTTP_METHOD_POST) == 0)
+    {
+        sendHeader("Content-Type", "application/x-www-form-urlencoded");
+    }
+
     if (headers != NULL)
     {
         int i = 0;
