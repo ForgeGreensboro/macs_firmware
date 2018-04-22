@@ -2,11 +2,14 @@
 #define __macs_h__
 
 #include <IPAddress.h>
+#include "LEDDriver.h"
 
 class Command;
 class SeeedRFID;
 class RestClient;
 class String;
+class MachineID;
+
 
 class Macs {
 public:
@@ -30,12 +33,15 @@ public:
     unsigned long getMachineId() { return _machine_id; }
     unsigned long getCurrentTag() { return _currentTag; }
     bool getRelayState() { return _relayState; }
+
+    LEDDriver * getLEDDriver();
+
 private:
     const int RFID_RX_PIN = 13;
     const int RFID_TX_PIN = 12;
     const int RELAY_PIN = 14;
     const int SERAL_SPEAD = 115200;
-    const int EEPROM_SIZE = 512;
+    const int EEPROM_SIZE = 2048;
 
     char * _ssid;
     char * _password;
@@ -43,6 +49,7 @@ private:
     IPAddress _remoteAddress;
 
     unsigned long _currentTag = 0;
+    bool wifiStatusFlag = false;
 
     int _status = 0;
     bool _relayState = false;
@@ -52,6 +59,8 @@ private:
     Command *_cmd = nullptr;
     SeeedRFID *_rfid = nullptr;
     RestClient *_restClient = nullptr;
+    MachineID *_machineid = nullptr;
+    LEDDriver *_leddriver = nullptr;
 
     char * eepromRead(int, int);
     bool validateCard(unsigned long card);

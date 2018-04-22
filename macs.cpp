@@ -10,6 +10,10 @@
 #include "macs.h"
 #include "rest_client.h"
 
+#include "MachineID.h"
+#include "LEDDriver.h"
+#include <Ticker.h>
+
 #define RFID_RX_PIN 13
 #define RFID_TX_PIN 12
 
@@ -25,10 +29,15 @@
 #define MACHINE_ID SERVER_ADDRESS + SERVER_ADDRESS_LENGTH
 #define MACHINE_LENGTH 32
 
+void wifiStatusFlip(void);
+
 Macs::Macs()
 {
    _rfid = new SeeedRFID(RFID_RX_PIN, RFID_TX_PIN);
    _restClient = new RestClient();
+
+   _machineid = new MachineID();
+   _leddriver = new LEDDriver();
 
    pinMode(RFID_TX_PIN, INPUT);
    pinMode(RELAY_PIN, OUTPUT);
@@ -44,6 +53,8 @@ Macs::Macs(const char * &ssid, const char * &password, const char *  &hostname) 
 Macs::~Macs()
 {
     _rfid = nullptr;
+    _restClient = nullptr;
+    _machineid = nullptr;
 }
 
 void Macs::init()
@@ -53,12 +64,6 @@ void Macs::init()
     Serial.begin(115200);
     EEPROM.begin(512);
 
-    Serial.println();
-    Serial.println();
-    Serial.println();
-
-    Serial.print("EEPROM SSID: ");
-    Serial.println(eepromRead(SSID_OFFSET, SSID_LENGTH));
 
       // We start by connecting to a WiFi network
     Serial.println();
@@ -70,6 +75,8 @@ void Macs::init()
 
     Serial.print("Connecting to ");
     Serial.println(_ssid);
+
+    _leddriver->setWifiStatus(1);
 
     _status = WiFi.begin(_ssid, _password);
 
@@ -86,6 +93,14 @@ void Macs::init()
     Serial.println(WiFi.subnetMask());
     Serial.print("Gateway: ");
     Serial.println(WiFi.gatewayIP());
+
+    Serial.print("Machine ID set on ioexpander: ");
+    Serial.println(_machineid->getId());
+
+    _machine_id = (unsigned long) _machineid->getId();
+
+    _leddriver->setWifiStatus(0);
+
 }
 
 void Macs::run()
@@ -130,7 +145,9 @@ void Macs::run()
        if (_cmd->getCommandLineFromSerialPort()) _cmd->DoMyCommand();
     }
 
+    _leddriver->setRelayStatus(_relayState ? 1 : 0 );
     digitalWrite(RELAY_PIN, _relayState ? 1 : 0);
+
 }
 
 char * Macs::eepromRead(int address, int length)
@@ -151,6 +168,8 @@ bool Macs::validateCard(unsigned long card)
 
     sprintf(_url, _pattern, card, _machine_id);
 
+    // Ticker flipper;
+
     http_request_t aRequest;
     http_response_t aResponse;
 
@@ -158,7 +177,10 @@ bool Macs::validateCard(unsigned long card)
     aRequest.path = _url;
     aRequest.port = 80;
 
+    
+    // flipper.attach(0.5, wifiStatusFlip);
     _restClient->get(aRequest, aResponse);
+    // flipper.detach();
 
     Serial.println(_url);
     Serial.println(aResponse.status);
@@ -241,3 +263,5 @@ void Macs::logLock()
   Serial.println(url);
   Serial.println(aResponse.status);
 }
+
+LEDDriver * Macs::getLEDDriver() { return _leddriver; }

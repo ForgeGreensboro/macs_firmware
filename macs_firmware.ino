@@ -1,5 +1,6 @@
 #include "configure.h"
 #include "macs.h"
+#include "LEDDriver.h"
 
 #define SSID_OFFSET 0
 #define SSID_LENGTH 32
@@ -17,6 +18,14 @@
 
 char * eepromRead(int, int);
 Macs app(SSID, PASSWORD, HOST_ADDRESS);
+int wifiCounter = 0;
+
+void wifiStatusFlip()
+{
+  wifiCounter++;
+
+  app.getLEDDriver()->setWifiStatus((wifiCounter % 2));
+}
 
 void setup() {
 
