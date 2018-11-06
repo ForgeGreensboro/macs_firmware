@@ -52,12 +52,10 @@ void LEDDriver::setRelayStatus(int status)
 		if(!isSet)
 		{
 			currentValue += 0x2;
-			Serial.println(currentValue);
 		}
 	} else {
 		if(isSet) {
 			currentValue -= 0x2;
-			Serial.println(currentValue);
 		}
 	}
 
@@ -74,12 +72,10 @@ void LEDDriver::setSystemReadyStatus(int status)
 		if(!isSet)
 		{
 			currentValue += 0x4;
-			Serial.println(currentValue);
 		}
 	} else {
 		if(isSet) {
 			currentValue -= 0x4;
-			Serial.println(currentValue);
 		}
 	}
 

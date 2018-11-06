@@ -13,6 +13,7 @@
 #include "MachineID.h"
 #include "LEDDriver.h"
 #include <Ticker.h>
+#include "states/state.h"
 
 #define RFID_RX_PIN 13
 #define RFID_TX_PIN 12
@@ -30,6 +31,14 @@
 #define MACHINE_LENGTH 32
 
 void wifiStatusFlip(void);
+
+void cardPresent(void);
+void cardNotPresent(void);
+volatile byte cardPresentActive = 0;
+int numberofCardPresentInterrupts = 0;
+
+volatile byte cardMissingActive = 0;
+int numberofCardMissingIterrupts = 0;
 
 Macs::Macs()
 {
@@ -76,6 +85,9 @@ void Macs::init()
     Serial.print("Connecting to ");
     Serial.println(_ssid);
 
+    attachInterrupt(RFID_TX_PIN, cardPresent, RISING);
+    // attachInterrupt(RFID_TX_PIN, cardNotPresent, FALLING);
+
     _leddriver->setWifiStatus(1);
 
     _status = WiFi.begin(_ssid, _password);
@@ -105,24 +117,38 @@ void Macs::init()
 
 void Macs::run()
 {
+    if(cardPresentActive > 0){
+      cardPresentActive--;
+      numberofCardPresentInterrupts++;
+      numberofCardMissingIterrupts--;
 
-    // Serial.print("Relay State");
-    // Serial.println(_relayState ? "On" : "Off");
+      Serial.print("An interrupt has occured. Total: ");
+      Serial.println(numberofCardPresentInterrupts);
+    }
+
+    if(cardMissingActive > 0)
+    {
+      cardMissingActive--;
+      numberofCardMissingIterrupts++;
+      numberofCardPresentInterrupts--;
+    }
+
     bool cardIsAvailable = _rfid->isAvailable();
     if (
-        (digitalRead(RFID_TX_PIN) == 0 || cardIsAvailable )
-        && _currentTag != 0
-        && _relayState
+        (digitalRead(RFID_TX_PIN) != 1 || cardIsAvailable ) && _relayState
         )
     {
 
+        _leddriver->setRelayStatus(0);
+        _leddriver->setSystemReadyStatus(0);
          Serial.println("Turning off Relay, and Locking machine.");
          _relayState = false;
          _currentTag = 0;
          logLock();
+         delay(50);
 
     }
-    if(cardIsAvailable)
+    if(cardIsAvailable && digitalRead(RFID_TX_PIN) == 1)
     {
         _currentTag = _rfid->cardNumber();
 
@@ -135,16 +161,22 @@ void Macs::run()
 
         if(_relayState)
         {
+          Serial.println("Machine is unlocked!");
+          _leddriver->setSystemReadyStatus(1);
           logValid(_currentTag);
+          delay(50);
         }else {
+          Serial.println("Machine is locked!");
+          _leddriver->setRelayStatus(1);
          logInvalid(_currentTag);
+         delay(50);
         }
     }
 
     if (Serial.available() > 0) {
        if (_cmd->getCommandLineFromSerialPort()) _cmd->DoMyCommand();
     }
-
+delay(50);
     _leddriver->setRelayStatus(_relayState ? 1 : 0 );
     digitalWrite(RELAY_PIN, _relayState ? 1 : 0);
 
@@ -168,6 +200,7 @@ bool Macs::validateCard(unsigned long card)
 
     sprintf(_url, _pattern, card, _machine_id);
 
+    Serial.println(_url);
     // Ticker flipper;
 
     http_request_t aRequest;
@@ -177,12 +210,12 @@ bool Macs::validateCard(unsigned long card)
     aRequest.path = _url;
     aRequest.port = 80;
 
-    
-    // flipper.attach(0.5, wifiStatusFlip);
-    _restClient->get(aRequest, aResponse);
-    // flipper.detach();
+    _leddriver->setWifiStatus(1);
 
-    Serial.println(_url);
+    _restClient->get(aRequest, aResponse);
+
+    _leddriver->setWifiStatus(0);
+
     Serial.println(aResponse.status);
 
     return aResponse.status == 200;
@@ -206,12 +239,9 @@ void Macs::logValid(unsigned long card)
   aRequest.body += "&event=1";
 
 
-  Serial.println("\n");
-
+  _leddriver->setWifiStatus(1);
   _restClient->post(aRequest, aResponse);
-
-  Serial.println(url);
-  Serial.println(aResponse.status);
+  _leddriver->setWifiStatus(0);
 }
 
 void Macs::logInvalid(unsigned long card)
@@ -232,12 +262,9 @@ void Macs::logInvalid(unsigned long card)
   aRequest.body += "&event=3";
 
 
-  Serial.println("\n");
-
+  _leddriver->setWifiStatus(1);
   _restClient->post(aRequest, aResponse);
-
-  Serial.println(url);
-  Serial.println(aResponse.status);
+  _leddriver->setWifiStatus(0);
 }
 
 void Macs::logLock()
@@ -253,15 +280,22 @@ void Macs::logLock()
 
   aRequest.body = "machine=";
   aRequest.body += _machine_id;
+  aRequest.body += "&member=";
+  aRequest.body += _currentTag;
   aRequest.body += "&event=2";
 
 
-  Serial.println("\n");
-
+  _leddriver->setWifiStatus(1);
   _restClient->post(aRequest, aResponse);
-
-  Serial.println(url);
-  Serial.println(aResponse.status);
+  _leddriver->setWifiStatus(0);
 }
 
 LEDDriver * Macs::getLEDDriver() { return _leddriver; }
+
+void cardPresent(void) {
+  cardPresentActive++;
+}
+
+void cardNotPresent(void) {
+  cardMissingActive++;
+}
