@@ -32,3 +32,5 @@
 *.app
 
 configure.h
+
+.vscode
